@@ -92,7 +92,25 @@ namespace CommandClientVisualStudioTest
         [TestMethod]
         public void TestSemaphoreReleaseOnNormalOperation()
         {
-            Assert.Fail("Not yet implemented");
+            IPAddress ipaddress = IPAddress.Parse("127.0.0.1");
+            Command command = new Command(CommandType.UserExit, ipaddress, null);
+            System.Threading.Semaphore fakeSemaphore = mocks.DynamicMock<System.Threading.Semaphore>();
+
+            using (mocks.Ordered())
+            {
+                Expect.Call(fakeSemaphore.WaitOne()).Return(true);
+                Expect.Call(fakeSemaphore.Release()).Return(1);
+            }
+            mocks.ReplayAll();
+
+            CMDClient client = new CMDClient(null, "Bogus network name");
+
+            // we need to set the private variable here
+            typeof(CMDClient).GetField("semaphore", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(client, fakeSemaphore);
+            typeof(CMDClient).GetField("networkStream", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(client, new MemoryStream());
+            
+            client.SendCommandToServerUnthreaded(command);
+            mocks.VerifyAll();   
         }
 
         [TestMethod]
